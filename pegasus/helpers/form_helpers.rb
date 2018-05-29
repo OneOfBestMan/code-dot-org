@@ -2,6 +2,7 @@ require 'digest/md5'
 require_relative '../../deployment'
 require lib_dir 'forms/pegasus_form_validation'
 require lib_dir 'utf8mb4_extensions'
+require_relative '../forms/form'
 
 include PegasusFormValidation
 
@@ -84,36 +85,31 @@ end
 # WARNING: This method only updates certain fields.
 # @param [String] kind The kind of the form to be updated.
 # @param [String] secret The secret associated with the form to be updated.
-# @param [Hash] form The updated form (to be merged with the existing row).
+# @param [Hash] updates The updated form (to be merged with the existing row).
 # @return [Hash] The hash of values sent to the DB for updating.
-def update_form(kind, secret, form)
-  return nil unless existing_form = DB[:forms].where(kind: kind, secret: secret).first
+def update_form(kind, secret, updates)
+  return nil unless (form = Form.find(kind: kind, secret: secret))
 
   if dashboard_user && !dashboard_user[:admin]
-    form[:email_s] ||= dashboard_user[:email]
-    form[:name_s] ||= dashboard_user[:name]
+    updates[:email_s] ||= dashboard_user[:email]
+    updates[:name_s] ||= dashboard_user[:name]
   end
 
-  existing_data = JSON.parse existing_form[:data], symbolize_names: true
-  form_data = JSON.parse form[:data], symbolize_names: true if form[:data]
-  merged_info = existing_data.merge form.merge(form_data || {})
+  existing_data = JSON.parse form.data, symbolize_names: true
+  form_data = JSON.parse updates[:data], symbolize_names: true if updates[:data]
+  merged_info = existing_data.merge updates.merge(form_data || {})
   merged_info = validate_form kind, merged_info, Pegasus.logger
 
   normalized_email = merged_info[:email_s].to_s.strip.downcase if merged_info.key?(:email_s)
 
-  update_form = existing_form.dup
-  [:created_at, :created_ip, :secret].each {|key| update_form.delete key}
-
-  update_form[:user_id] = dashboard_user[:id] if dashboard_user && !dashboard_user[:admin]
-  update_form[:email] = normalized_email
-  update_form[:name] = merged_info[:name_s].to_s.strip if merged_info.key?(:name_s)
-  update_form[:data] = merged_info.to_json
-  update_form[:updated_at] = DateTime.now
-  update_form[:updated_ip] = request.ip
-  update_form[:processed_at] = nil
-  update_form[:indexed_at] = nil
-  update_form[:hashed_email] = Digest::MD5.hexdigest(normalized_email) if merged_info.key?(:email_s)
-  DB[:forms].where(id: existing_form[:id]).update(update_form)
-
-  update_form
+  form.user_id = dashboard_user[:id] if dashboard_user && !dashboard_user[:admin]
+  form.email = normalized_email
+  form.name = merged_info[:name_s].to_s.strip if merged_info.key?(:name_s)
+  form.data = merged_info.to_json
+  form.updated_at = DateTime.now
+  form.updated_ip = request.ip
+  form.processed_at = nil
+  form.indexed_at = nil
+  form.hashed_email = Digest::MD5.hexdigest(normalized_email) if merged_info.key?(:email_s)
+  form.save_changes
 end
