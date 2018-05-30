@@ -6,7 +6,6 @@
   "user_id": 9,
   "properties": {
     "skin": "gamelab",
-    "show_d_pad": "true",
     "show_debug_watch": "true",
     "embed": "false",
     "instructions_important": "false",
@@ -52,10 +51,7 @@
     "hide_custom_blocks": "false",
     "use_default_sprites": "false",
     "auto_run_setup": "DRAW_LOOP",
-    "contained_level_names": null,
-    "encrypted_examples": [
-
-    ]
+    "contained_level_names": null
   },
   "published": true,
   "notes": "",
