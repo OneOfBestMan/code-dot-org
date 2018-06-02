@@ -1,9 +1,9 @@
 require 'cdo/db'
-DB = PEGASUS_DB
+require 'cdo/lazy_object'
 
 # A wrapper class around the PEGASUS_DB[:properties] table.
 class Properties
-  @@table = DB[:properties]
+  @@table = lazy {PEGASUS_DB[:properties]}
 
   # @param key [String] the key to retrieve the value of.
   # @return [JSON] the value associated with key, nil if key does not exist.

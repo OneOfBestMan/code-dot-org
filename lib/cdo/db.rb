@@ -1,13 +1,16 @@
 require 'sequel'
 require 'sequel/connection_pool/threaded'
+require 'cdo/lazy_object'
 
 # Connects to database.  Uses the Sequel connection_validator:
 #   http://sequel.jeremyevans.net/rdoc-plugins/files/lib/sequel/extensions/connection_validator_rb.html
-# @param writer [String] Write conenction
+# @param writer [String] Write connection
 # @param reader [String] Read connection
 # @param validation_frequency [number] How often to validate the connection. If set to -1,
-#   validate each time a request is made.
-def sequel_connect(writer, reader, validation_frequency: nil)
+# @param lazy_load [boolean] Lazy-load client connection until the first method access.
+def sequel_connect(writer, reader, validation_frequency: nil, lazy_load: true)
+  return lazy {sequel_connect(writer, reader, validation_frequency: validation_frequency, lazy_load: false)} if lazy_load
+
   reader = reader.gsub 'mysql:', 'mysql2:'
   writer = writer.gsub 'mysql:', 'mysql2:'
 
